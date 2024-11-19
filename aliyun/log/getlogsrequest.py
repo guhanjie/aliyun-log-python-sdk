@@ -57,7 +57,8 @@ class GetLogsRequest(LogRequest):
     """
 
     def __init__(self, project=None, logstore=None, fromTime=None, toTime=None, topic=None,
-                 query=None, line=100, offset=0, reverse=False, power_sql=False, scan=False, forward=True, accurate_query=True, from_time_nano_part=0, to_time_nano_part=0):
+                 query=None, line=100, offset=0, reverse=False, power_sql=False, scan=False, forward=True,
+                 accurate_query=True, from_time_nano_part=0, to_time_nano_part=0, full_complete_sql=False):
         LogRequest.__init__(self, project)
         self.logstore = logstore
         self.fromTime = fromTime
@@ -68,6 +69,7 @@ class GetLogsRequest(LogRequest):
         self.offset = offset
         self.reverse = reverse
         self.power_sql = power_sql
+        self.full_complete_sql = full_complete_sql
         self.scan = scan
         self.forward = forward
         self.accurate_query = accurate_query
@@ -209,6 +211,21 @@ class GetLogsRequest(LogRequest):
         """
         self.power_sql = power_sql
 
+    def get_full_complete_sql(self):
+        """ Get request full_complete_sql flag
+
+        :return: bool, full_complete_sql flag
+        """
+        return self.full_complete_sql
+
+    def set_full_complete_sql(self, full_complete_sql):
+        """ Set request full_complete_sql flag
+
+        :type full_complete_sql: bool
+        :param full_complete_sql: full_complete_sql flag
+        """
+        self.full_complete_sql = full_complete_sql
+
     def get_scan(self):
         """ Get request scan flag
 
@@ -297,10 +314,11 @@ class GetProjectLogsRequest(LogRequest):
     :param power_sql: if power_sql is set to true, the query will run on enhanced sql mode
     """
 
-    def __init__(self, project=None, query=None, power_sql=False):
+    def __init__(self, project=None, query=None, power_sql=False, full_complete_sql=False):
         LogRequest.__init__(self, project)
         self.query = query
         self.power_sql = power_sql
+        self.full_complete_sql = full_complete_sql
 
     def get_query(self):
         """ Get user defined query
@@ -331,3 +349,18 @@ class GetProjectLogsRequest(LogRequest):
         :param power_sql: power_sql flag
         """
         self.power_sql = power_sql
+
+    def get_full_complete_sql(self):
+        """ Get request full_complete_sql flag
+
+        :return: bool, full_complete_sql flag
+        """
+        return self.full_complete_sql
+
+    def set_full_complete_sql(self, full_complete_sql):
+        """ Set request full_complete_sql flag
+
+        :type full_complete_sql: bool
+        :param full_complete_sql: full_complete_sql flag
+        """
+        self.full_complete_sql = full_complete_sql

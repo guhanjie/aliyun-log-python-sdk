@@ -549,7 +549,8 @@ class LogClient(object):
         return GetHistogramsResponse(resp, header)
 
     def get_log(self, project, logstore, from_time, to_time, topic=None,
-                query=None, reverse=False, offset=0, size=100, power_sql=False, scan=False, forward=True, accurate_query=True, from_time_nano_part=0, to_time_nano_part=0):
+                query=None, reverse=False, offset=0, size=100, power_sql=False, scan=False, forward=True,
+                accurate_query=True, from_time_nano_part=0, to_time_nano_part=0, full_complete_sql=False):
         """ Get logs from log service.
         will retry DEFAULT_QUERY_RETRY_COUNT when incomplete.
         Unsuccessful operation will cause an LogException.
@@ -600,6 +601,9 @@ class LogClient(object):
         :type to_time_nano_part: int
         :param to_time_nano_part: nano part of query end time
 
+        :type full_complete_sql: bool
+        :param full_complete_sql: if full_complete_sql is set to true, the query will run on full complete sql mode
+
         :return: GetLogsResponse
 
         :raise: LogException
@@ -633,6 +637,7 @@ class LogClient(object):
                       'line': size,
                       'offset': offset,
                       'powerSql': power_sql,
+                      'full_complete_sql': full_complete_sql,
                       'accurate': accurate_query,
                       'fromNs': from_time_nano_part,
                       'toNs': to_time_nano_part
@@ -698,6 +703,7 @@ class LogClient(object):
         offset = request.get_offset()
         size = request.get_line()
         power_sql = request.get_power_sql()
+        full_complete_sql = request.get_full_complete_sql()
         scan = request.get_scan()
         forward = request.get_forward()
         accurate_query = request.get_accurate_query()
@@ -705,10 +711,12 @@ class LogClient(object):
         to_time_nano_part = request.get_to_time_nano_part()
 
         return self.get_log(project, logstore, from_time, to_time, topic,
-                            query, reverse, offset, size, power_sql, scan, forward, accurate_query, from_time_nano_part, to_time_nano_part)
+                            query, reverse, offset, size, power_sql, scan,
+                            forward, accurate_query, from_time_nano_part,
+                            to_time_nano_part, full_complete_sql)
 
     def get_log_all(self, project, logstore, from_time, to_time, topic=None,
-                    query=None, reverse=False, offset=0, power_sql=False, accurate_query=True):
+                    query=None, reverse=False, offset=0, power_sql=False, accurate_query=True, full_complete_sql=False):
         """ Get logs from log service. will retry when incomplete.
         Unsuccessful operation will cause an LogException. different with `get_log` with size=-1,
         It will try to iteratively fetch all data every 100 items and yield them, in CLI, it could apply jmes filter to
@@ -744,13 +752,17 @@ class LogClient(object):
         :type accurate_query: bool
         :param accurate_query: if accurate_query is set to true, the query will global ordered time second mode
 
+        :type full_complete_sql: bool
+        :param full_complete_sql: if full_complete_sql is set to true, the query will run on full_complete sql mode
+
         :return: GetLogsResponse iterator
 
         :raise: LogException
         """
         while True:
             response = self.get_log(project, logstore, from_time, to_time, topic=topic,
-                                    query=query, reverse=reverse, offset=offset, size=100, power_sql=power_sql, accurate_query=accurate_query)
+                                    query=query, reverse=reverse, offset=offset, size=100,
+                                    power_sql=power_sql, accurate_query=accurate_query, full_complete_sql=full_complete_sql)
 
             yield response
 
@@ -761,7 +773,7 @@ class LogClient(object):
                 break
 
     def get_log_all_v2(self, project, logstore, from_time, to_time, topic=None,
-                    query=None, reverse=False, offset=0, power_sql=False, scan=False, forward=True):
+                    query=None, reverse=False, offset=0, power_sql=False, scan=False, forward=True, full_complete_sql=False):
         """ FOR PHRASE AND SCAN WHERE.
                 Get logs from log service. will retry when incomplete.
                 Unsuccessful operation will cause an LogException. different with `get_log` with size=-1,
@@ -801,6 +813,9 @@ class LogClient(object):
                 :type forward: bool
                 :param forward: only for scan query, if forward is set to true, the query will get next page, otherwise previous page
 
+                :type full_complete_sql: bool
+                :param full_complete_sql: if full_complete_sql is set to true, the query will run on full_complete sql mode
+
                 :return: GetLogsResponse iterator
 
                 :raise: LogException
@@ -808,7 +823,7 @@ class LogClient(object):
         while True:
             response = self.get_log(project, logstore, from_time, to_time, topic=topic,
                                     query=query, reverse=reverse, offset=offset, size=100, power_sql=power_sql,
-                                    scan=scan, forward=forward)
+                                    scan=scan, forward=forward, full_complete_sql=full_complete_sql)
 
             yield response
 
@@ -827,7 +842,7 @@ class LogClient(object):
             if count == 0 or is_stats_query(query) or scan_all:
                 break
 
-    def execute_logstore_sql(self, project, logstore, from_time, to_time, sql, power_sql):
+    def execute_logstore_sql(self, project, logstore, from_time, to_time, sql, power_sql, full_complete_sql=False):
         """ Execute SQL from log service.
         will retry DEFAULT_QUERY_RETRY_COUNT when incomplete.
         Unsuccessful operation will cause an LogException.
@@ -850,6 +865,9 @@ class LogClient(object):
         :type power_sql: bool
         :param power_sql: if power_sql is set to true, the query will run on enhanced sql mode
 
+        :type full_complete_sql: bool
+        :param full_complete_sql: if full_complete_sql is set to true, the query will run on full_complete sql mode
+
         :return: GetLogsResponse
 
         :raise: LogException
@@ -858,9 +876,9 @@ class LogClient(object):
             raise LogException("InvalidParameter", "parameter sql invalid, please follow 'Search|Analysis' syntax, refer to "
                                "https://help.aliyun.com/document_detail/43772.html")
         return self.get_log(project, logstore, from_time, to_time, topic=None,
-                            query=sql, reverse=False, offset=0, size=100, power_sql=power_sql)
+                            query=sql, reverse=False, offset=0, size=100, power_sql=power_sql, full_complete_sql=full_complete_sql)
 
-    def execute_project_sql(self, project, sql, power_sql):
+    def execute_project_sql(self, project, sql, power_sql, full_complete_sql=False):
         """ Execute SQL from log service.
         Unsuccessful operation will cause an LogException.
 
@@ -873,11 +891,14 @@ class LogClient(object):
         :type power_sql: bool
         :param power_sql: if power_sql is set to true, the query will run on enhanced sql mode
 
+        :type full_complete_sql: bool
+        :param full_complete_sql: if full_complete_sql is set to true, the query will run on full_complete sql mode
+
         :return: GetLogsResponse
 
         :raise: LogException
         """
-        request = GetProjectLogsRequest(project, sql, power_sql)
+        request = GetProjectLogsRequest(project, sql, power_sql, full_complete_sql)
         return self.get_project_logs(request)
 
     def get_context_logs(self, project, logstore, pack_id, pack_meta, back_lines, forward_lines):
@@ -940,6 +961,8 @@ class LogClient(object):
             params['query'] = request.get_query()
         if request.get_power_sql() is not None:
             params['powerSql'] = request.get_power_sql()
+        if request.get_full_complete_sql() is not None:
+            params['full_complete_sql'] = request.get_full_complete_sql()
         project = request.get_project()
         resource = "/logs"
         (resp, header) = self._send("GET", project, None, resource, params, headers)
